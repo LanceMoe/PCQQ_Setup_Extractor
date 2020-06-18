@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.mll": "ocaml",
+        "vector": "cpp",
+        "xstring": "cpp"
+    }
+}
