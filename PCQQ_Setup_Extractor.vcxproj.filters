@@ -75,4 +75,7 @@
       <Filter>头文件\fmt</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>

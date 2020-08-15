@@ -1,25 +1,24 @@
-#include "utils.h"
+ï»¿#include "utils.h"
 
 using namespace std;
 
+// å‚è€ƒ https://blog.csdn.net/HeroNeverDie/article/details/78990616
 
-// ²Î¿¼ https://blog.csdn.net/HeroNeverDie/article/details/78990616
-
-//¸ù¾İÄÚ´æÆ«ÒÆµØÖ·RVAµÃµ½ÎÄ¼şÆ«ÒÆµØÖ·
+// æ ¹æ®å†…å­˜åç§»åœ°å€RVAå¾—åˆ°æ–‡ä»¶åç§»åœ°å€
 DWORD RvaToOffset(PIMAGE_NT_HEADERS pNtHeader, DWORD rva)
 {
-    //PE½Ú
+    // PEèŠ‚
     IMAGE_SECTION_HEADER* p_Section_Header;
-    //»ñµÃPe½ÚÊıÄ¿
+    // è·å¾—PeèŠ‚æ•°ç›®
     DWORD sectionSum = pNtHeader->FileHeader.NumberOfSections;
-    //µÚÒ»¸ö½Ú±íÏî
+    // ç¬¬ä¸€ä¸ªèŠ‚è¡¨é¡¹
     p_Section_Header = (IMAGE_SECTION_HEADER*)((DWORD)pNtHeader + (DWORD)sizeof(IMAGE_NT_HEADERS));
     for (size_t i = 0; i < sectionSum; i++)
     {
-        //printf_s("%s\n", p_Section_Header->Name);
-        //virtualAddress½ÚÇøµÄRVAµØÖ·
-        //sizeofrawdata½ÚÇø¶ÔÆëºóµÄ³ß´ç
-        //PointerToRawData½ÚÇøÆğÊ¼Êı¾İÔÚÎÄ¼şÖĞµÄÆ«ÒÆ
+        // printf_s("%s\n", p_Section_Header->Name);
+        // virtualAddressèŠ‚åŒºçš„RVAåœ°å€
+        // sizeofrawdataèŠ‚åŒºå¯¹é½åçš„å°ºå¯¸
+        // PointerToRawDataèŠ‚åŒºèµ·å§‹æ•°æ®åœ¨æ–‡ä»¶ä¸­çš„åç§»
         if (p_Section_Header->VirtualAddress <= rva && rva < p_Section_Header->VirtualAddress + p_Section_Header->SizeOfRawData)
         {
             return rva - p_Section_Header->VirtualAddress + p_Section_Header->PointerToRawData;
@@ -37,29 +36,29 @@ std::wstring AnsiToUnicode(const std::string& orgstr)
     return buf.data();
 }
 
-//¸ù¾İIDµÃµ½Í¼±ê×ÊÔ´
+// æ ¹æ®IDå¾—åˆ°å›¾æ ‡èµ„æº
 PIMAGE_RESOURCE_DATA_ENTRY ExtractIcoByID(PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectoryRoot, PIMAGE_DOS_HEADER pImageDosHeader, PIMAGE_NT_HEADERS pImageNtHeader, int ID)
 {
-    //±éÀú×ÊÔ´±í¸ùÄ¿Â¼
+    // éå†èµ„æºè¡¨æ ¹ç›®å½•
     for (int i = 0; i < pImageResourceDirectoryRoot->NumberOfIdEntries + pImageResourceDirectoryRoot->NumberOfNamedEntries; i++)
     {
-        //depth == 2
+        // depth == 2
         PIMAGE_RESOURCE_DIRECTORY_ENTRY pImageResourceDirectoryEntrySec = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)((DWORD)pImageResourceDirectoryRoot + sizeof(IMAGE_RESOURCE_DIRECTORY)) + i;
-        //Í¼±ê×ÊÔ´
+        // å›¾æ ‡èµ„æº
         if (pImageResourceDirectoryEntrySec->Id == 3)
         {
             PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectorySec = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pImageResourceDirectoryRoot + pImageResourceDirectoryEntrySec->OffsetToDirectory);
             for (int r = 0; r < pImageResourceDirectorySec->NumberOfIdEntries + pImageResourceDirectorySec->NumberOfNamedEntries; r++)
             {
-                //depth == 3
+                // depth == 3
                 PIMAGE_RESOURCE_DIRECTORY_ENTRY pImageResourceDirectoryEntryTir = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)((DWORD)pImageResourceDirectorySec + sizeof(IMAGE_RESOURCE_DIRECTORY)) + r;
-                //¸ù¾İÍ¼±êID»ñµÃÍ¼±êÊı¾İ
+                // æ ¹æ®å›¾æ ‡IDè·å¾—å›¾æ ‡æ•°æ®
                 if (pImageResourceDirectoryEntryTir->Id == ID)
                 {
                     PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectoryTir = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pImageResourceDirectoryRoot + pImageResourceDirectoryEntryTir->OffsetToDirectory);
                     for (int t = 0; t < pImageResourceDirectoryTir->NumberOfIdEntries + pImageResourceDirectoryTir->NumberOfNamedEntries; t++)
                     {
-                        //depth == 4
+                        // depth == 4
                         PIMAGE_RESOURCE_DIRECTORY_ENTRY pImageResourceDirectoryEntryFour = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)((DWORD)pImageResourceDirectoryTir + sizeof(IMAGE_RESOURCE_DIRECTORY)) + t;
                         PIMAGE_RESOURCE_DATA_ENTRY pImageResourceDataEntry = (PIMAGE_RESOURCE_DATA_ENTRY)((DWORD)pImageResourceDirectoryRoot + pImageResourceDirectoryEntryFour->OffsetToData);
                         return pImageResourceDataEntry;
@@ -71,43 +70,40 @@ PIMAGE_RESOURCE_DATA_ENTRY ExtractIcoByID(PIMAGE_RESOURCE_DIRECTORY pImageResour
     return NULL;
 }
 
-//Í¼±êÌáÈ¡·½·¨
+// å›¾æ ‡æå–æ–¹æ³•
 void ExtractIco(PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectoryRoot, PIMAGE_DOS_HEADER pImageDosHeader, PIMAGE_NT_HEADERS pImageNtHeader)
 {
-    int sizeOfIcoGroup;
-    DWORD pIcoData;
-    DWORD pIcoGroupData;
-    //±éÀú×ÊÔ´±í¸ùÄ¿Â¼
+    // éå†èµ„æºè¡¨æ ¹ç›®å½•
     for (int i = 0; i < pImageResourceDirectoryRoot->NumberOfIdEntries + pImageResourceDirectoryRoot->NumberOfNamedEntries; i++)
     {
-        //depth == 2
+        // depth == 2
         PIMAGE_RESOURCE_DIRECTORY_ENTRY pImageResourceDirectoryEntrySec = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)((DWORD)pImageResourceDirectoryRoot + sizeof(IMAGE_RESOURCE_DIRECTORY)) + i;
-        //Í¼±ê×ÊÔ´
+        // å›¾æ ‡èµ„æº
         if (pImageResourceDirectoryEntrySec->Id == 3)
         {
             PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectorySec = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pImageResourceDirectoryRoot + pImageResourceDirectoryEntrySec->OffsetToDirectory);
         }
-        //Í¼±ê×é
+        // å›¾æ ‡ç»„
         if (pImageResourceDirectoryEntrySec->Id == 14)
         {
             PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectorySec = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pImageResourceDirectoryRoot + pImageResourceDirectoryEntrySec->OffsetToDirectory);
             for (int r = 0; r < pImageResourceDirectorySec->NumberOfIdEntries + pImageResourceDirectorySec->NumberOfNamedEntries; r++)
             {
-                //depth == 3
+                // depth == 3
                 PIMAGE_RESOURCE_DIRECTORY_ENTRY pImageResourceDirectoryEntryTir = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)((DWORD)pImageResourceDirectorySec + sizeof(IMAGE_RESOURCE_DIRECTORY)) + r;
                 PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectoryTir = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pImageResourceDirectoryRoot + pImageResourceDirectoryEntryTir->OffsetToDirectory);
                 for (int t = 0; t < pImageResourceDirectoryTir->NumberOfIdEntries + pImageResourceDirectoryTir->NumberOfNamedEntries; t++)
                 {
-                    //depth == 4
+                    // depth == 4
                     PIMAGE_RESOURCE_DIRECTORY_ENTRY pImageResourceDirectoryEntryFour = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)((DWORD)pImageResourceDirectoryTir + sizeof(IMAGE_RESOURCE_DIRECTORY)) + t;
                     PIMAGE_RESOURCE_DATA_ENTRY pImageResourceDataEntry = (PIMAGE_RESOURCE_DATA_ENTRY)((DWORD)pImageResourceDirectoryRoot + pImageResourceDirectoryEntryFour->OffsetToData);
-                    pIcoGroupData = (DWORD)pImageDosHeader + RvaToOffset(pImageNtHeader, pImageResourceDataEntry->OffsetToData);
-                    sizeOfIcoGroup = pImageResourceDataEntry->Size;
-                    //printf_s("%08x\n", *((WORD*)pIcoGroupData + 2));
-                    //µÃµ½Í¼±ê×éÖĞÍ¼±êÊıÁ¿
+                    DWORD pIcoGroupData = (DWORD)pImageDosHeader + RvaToOffset(pImageNtHeader, pImageResourceDataEntry->OffsetToData);
+                    int sizeOfIcoGroup = pImageResourceDataEntry->Size;
+                    // printf_s("%08x\n", *((WORD*)pIcoGroupData + 2));
+                    // å¾—åˆ°å›¾æ ‡ç»„ä¸­å›¾æ ‡æ•°é‡
                     for (int n = 0; n < *((WORD*)pIcoGroupData + 2); n++)
                     {
-                        //Ö»°üº¬Ò»¸öÍ¼±êµÄÍ¼±êÍ·¹¹Ôì
+                        // åªåŒ…å«ä¸€ä¸ªå›¾æ ‡çš„å›¾æ ‡å¤´æ„é€ 
                         uint8_t* currentIcoHeader = 6 + 14 * n + (uint8_t*)pIcoGroupData;
                         vector<uint8_t> myIcoHeader(22);
                         myIcoHeader[0] = 0x00;
@@ -130,18 +126,17 @@ void ExtractIco(PIMAGE_RESOURCE_DIRECTORY pImageResourceDirectoryRoot, PIMAGE_DO
                         myIcoHeader[19] = 0x00;
                         myIcoHeader[20] = 0x00;
                         myIcoHeader[21] = 0x00;
-                        pIcoData = (DWORD)pImageDosHeader + RvaToOffset(pImageNtHeader, pImageResourceDataEntryOfIco->OffsetToData);
+                        DWORD pIcoData = (DWORD)pImageDosHeader + RvaToOffset(pImageNtHeader, pImageResourceDataEntryOfIco->OffsetToData);
                         const char* nameHeader = "D:\\test\\qq\\";
                         const char* nameTail = ".ico";
                         char fileName[256];
                         sprintf_s(fileName, "%s%d", nameHeader, ID);
                         sprintf_s(fileName, "%s%s", fileName, nameTail);
                         HANDLE hFile = CreateFile(AnsiToUnicode(fileName).c_str(), GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-                        //Ğ´ÈëÎÄ¼ş
+                        // å†™å…¥æ–‡ä»¶
                         WriteFile(hFile, (LPVOID)myIcoHeader.data(), 22, NULL, NULL);
                         WriteFile(hFile, (LPVOID)pIcoData, pImageResourceDataEntryOfIco->Size, NULL, NULL);
                         CloseHandle(hFile);
-
                     }
                 }
             }
@@ -158,16 +153,16 @@ void PEControl()
     HANDLE hMapFile = CreateFileMapping(fileHandle, NULL, PAGE_READONLY, 0, 0, NULL);
     if (hMapFile == NULL)
     {
-        cout << "ÄÚ´æÓ³ÉäÎÄ¼şÊ§°Ü" << endl;
+        cout << "å†…å­˜æ˜ å°„æ–‡ä»¶å¤±è´¥" << endl;
         system("PAUSE");
     }
     LPDWORD lpMemory = (LPDWORD)MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
-    //µÃµ½PEÎÄ¼şDOSÍ·ËùÔÚÎ»ÖÃ
+    // å¾—åˆ°PEæ–‡ä»¶DOSå¤´æ‰€åœ¨ä½ç½®
     PIMAGE_DOS_HEADER pImageDosHeader = (PIMAGE_DOS_HEADER)lpMemory;
-    //µÃµ½PEÍ·ËùÔÚÎ»ÖÃ PE start = DOS MZ »ùµØÖ· + IMAGE_DOS_HEADER.e_lfanew
+    // å¾—åˆ°PEå¤´æ‰€åœ¨ä½ç½® PE start = DOS MZ åŸºåœ°å€ + IMAGE_DOS_HEADER.e_lfanew
     PIMAGE_NT_HEADERS pImageNTHeader = (PIMAGE_NT_HEADERS)((DWORD)pImageDosHeader->e_lfanew + (DWORD)pImageDosHeader);
-    //PEÎÄ¼şµÄÍ¼±êÊı¾İ´¢´æÔÚ×ÊÔ´±íÖĞ µÃµ½×ÊÔ´±íÍ·ËùÔÚÎ»ÖÃ ×ÊÔ´±íRVA´¢´æÔÚPEÀ©Õ¹Í·(pImageNTHeader->OptionalHeader)µÄÊı¾İÄ¿Â¼µÄµÚÈı¸ö
+    // PEæ–‡ä»¶çš„å›¾æ ‡æ•°æ®å‚¨å­˜åœ¨èµ„æºè¡¨ä¸­ å¾—åˆ°èµ„æºè¡¨å¤´æ‰€åœ¨ä½ç½® èµ„æºè¡¨RVAå‚¨å­˜åœ¨PEæ‰©å±•å¤´(pImageNTHeader->OptionalHeader)çš„æ•°æ®ç›®å½•çš„ç¬¬ä¸‰ä¸ª
     IMAGE_RESOURCE_DIRECTORY* pImageResourceDirectory = (PIMAGE_RESOURCE_DIRECTORY)((DWORD)pImageDosHeader + RvaToOffset(pImageNTHeader, pImageNTHeader->OptionalHeader.DataDirectory[2].VirtualAddress));
-    //µ÷ÓÃPEÎÄ¼şICOÌáÈ¡·½·¨
+    // è°ƒç”¨PEæ–‡ä»¶ICOæå–æ–¹æ³•
     ExtractIco(pImageResourceDirectory, pImageDosHeader, pImageNTHeader);
 }
